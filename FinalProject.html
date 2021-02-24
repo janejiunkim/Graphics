@@ -1,0 +1,539 @@
+<script src=Flib.js></script>
+<body background = "ACbackground.jpg">
+<body bgcolor=black text=black link=white alink=white vlink=white>
+<center>
+<canvas id='canvas1' width=400 height=400></canvas>
+
+
+<br>
+Rotate view
+<input type=range min=1 max=100 value=50 class=slider id=rotateViewSlider>
+<p>
+  <table><tr><td>Personality:<td><div id=shapeButtons></div></table>
+</center>
+
+<table><tr>
+<td>Scale
+<br>X <input type=range min=1 max=100 value=50 class=slider id=scaleXSlider>
+<br>Y <input type=range min=1 max=100 value=50 class=slider id=scaleYSlider>
+<br>Z <input type=range min=1 max=100 value=50 class=slider id=scaleZSlider>
+
+</table>
+<p>
+</body>
+
+<!!-------- VERTEX SHADER: YOU PROBABLY DON'T WANT TO CHANGE THIS RIGHT NOW -------->
+
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPos;
+   attribute vec3 aNor;
+   attribute vec2 aUV;
+   uniform   mat4 uPMat;
+   uniform   mat4 uMatF;
+   uniform   mat4 uMatI;
+   varying   vec3 vaPos;
+   varying   vec3 vPos;
+   varying   vec3 vNor;
+   varying   vec2 vUV;
+   void main() {
+      vec4 pos = uPMat * uMatF * vec4(aPos, 1.);
+      vec4 nor = vec4(aNor, 0.) * uMatI;
+      gl_Position = pos * vec4(1.,1.,1./10.,1.);
+      vaPos = aPos;
+      vPos = pos.xyz;
+      vNor = nor.xyz;
+      vUV  = aUV;
+   }
+</script>
+
+<!!-------- FRAGMENT SHADER: THIS IS WHERE YOU WILL DO YOUR WORK -------->
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+
+ const int nl = 3;            // NUMBER OF LIGHTS
+ uniform vec3  uLDir[nl];     // LIGHT DIRECTIONS
+ uniform vec3  uLCol[nl];     // LIGHT COLORS
+ uniform mat4  uM;            // MATERIAL PROPERTIES
+ uniform float uTime;         // TIME (CURRENTLY UNUSED)
+ varying vec3  vPos;
+ varying vec3  vaPos;
+ varying vec3  vNor;
+ varying vec2  vUV;
+
+ void main() {
+    vec3 P = vPos;            // SURFACE POINT
+    vec3 N = normalize(vNor); // SURFACE NORMAL
+    vec3 E = vec3(0.,0.,1.);  // APPROX DIRECTION TO EYE
+
+    // UNPACK MATERIAL PROPERTIES MATRIX
+
+    mat4 material = uM;
+    vec3 ambient  = material[0].rgb;
+    vec3 diffuse  = material[1].rgb;
+    vec3 specular = material[2].rgb;
+    float p       = material[2].a;
+    float ta      = material[3].r;
+    float tf      = material[3].g;
+
+    // DO PHONG SHADING
+
+    vec3 color = ambient;
+    for (int i = 0 ; i < nl ; i++) {
+       vec3 R = 2. * dot(uLDir[i], N) * N - uLDir[i];
+       float d = max(0., dot(uLDir[i], N));
+       float s = pow(max(0., dot(E, R)), p);
+       color += uLCol[i] * (diffuse * d + specular * s);
+    }
+    color += specular * .02 * (.1 + noise(2. * N)) * N.z;
+    if (ta != 0.)
+       color *= 1. + ta * noise(vec3(tf * vUV, 0.));
+    gl_FragColor = vec4(sqrt(color), 1.0);
+ }</script>
+
+<!!-------- A PROPERLY DESCRIPTIVE TITLE -------->
+
+<script id='my_title' type='text/html'>
+Final Project
+</script>
+
+<!!-------- A LONGER TEXT DESCRIPTION -------->
+
+<script id='my_instructions' type='text/html'><font color=#000000>
+<p>
+ INSTRUCTIONS (to Avoid Bugs):
+    - click smug to view a villager who is more likely to have a smug personality
+    <br>
+    - the scale sliders have been working as a delete function for some reason, it was supposed to allow the user to scale parts of the villager (i.e, make the head/body/limbs bigger,etc)
+    <br>
+    - rotate view slider to see how far off on the z-values I was
+<br>
+<br>
+    -refresh page
+    <br>
+    -click peppy to view a villager who is more likely to have a peppy personality
+    <br>
+    -after clicking a part of the villager the scale slider will delete the object
+    <br>
+    -rotate view works the same
+<p>
+A main issue that players face in the game is getting the best looking or most popular villagers for your island. 
+Certain villagers for the most part are hard to come by unless you buy the amiibo of a specific character from Nintendo. 
+There are workarounds but this usually requires a lot of time and a lot of luck.
+<p>
+... What if users could generate their own villagers and put them into the game?
+<p>
+EDIT: I thought this idea was pretty original but I looked online and "scratch.mit.edu" already has a "Make Your Own Animal Crossing Villager"
+<p>
+ANOTHER EDIT: Somehow this ended up looking more like it came from a Studio Ghibli production then Animal Crossing ....
+<p>
+
+</script>
+
+<script>
+
+let gold          = phong([.1,.03,0], [.12,.05,0], [1,.5,0], 10);
+let red_plastic   = phong([.1,0,0], [.5,0,0], [1,1,1], 20, 20);
+let green_plastic = phong([0,.1,0], [0,.5,0], [1,1,1], 20);
+let blue_plastic  = phong([.1,.1,.1], [0,.25,.5], [1,1,1], 20);
+let white_plastic = phong([.5,.5,.5], [.7,.7,.7], [1,1,1],  20);
+let white_gold    = phong([.01,.01,.008], [0,0,0], [2,2,1.6], 40);
+let steel         = phong([.01,.01,.01], [.02,.02,.02], [.3,.3,.3], 10);
+let brass         = phong([.02,.012,0], [.02,.012,0], [1,.6,0], 10);
+let pink_plastic = phong([.4,.2,.2], [.12,0.05,0], [1,1,1],20);
+let raymond_gray = phong([.2,0.25,0.32], [.33 ,.36 , 0.39], [ .52,.54 ,.56 ], 20);
+let light_pink    =phong([.6,.4,.4], [.32,0.25,0], [1,1,1], 20)
+
+
+// CREATE THE HTML DOCUMENT
+let shapeNames = 'Smug,Peppy'.split(',');
+let shapes = [ sphere, cube ];
+let selectedShape = 0;
+
+(() => {
+   let s = '';
+   for (let n = 0 ; n < shapeNames.length ; n++) {
+      let name = shapeNames[n];
+      if (n == 0) {
+        s += '<button '
+         + 'id=shapeButton' + n + ' '
+           + 'style=\'border-style:none\''
+        + 'onClick=showSmug(' + n + ')>'
+        + '<b>' + name + '</b>'
+         + '</button> '
+
+      }
+      else {
+        s += '<button '
+         + 'id=shapeButton' + n + ' '
+          + 'style=\'border-style:none\''
+        + 'onClick=showPeppy(' + n + ')>'
+        + '<b>' + name + '</b>'
+          + '</button> '
+      }
+   }
+   shapeButtons.innerHTML = s;
+})();
+
+let selectShape = n => {
+   selectedShape = n;
+   for (let n = 0 ; n < shapeNames.length ; n++) {
+      let button = document.getElementById('shapeButton' + n);
+      let bgColor = n == selectedShape ? 'white' : 'gray';
+      button.style.backgroundColor = bgColor;
+   }
+}
+
+selectShape(0);
+/*
+let personalityNames = 'smug,peppy'.split(',');
+let personalities = [smug, peppy];
+let selectedPersonality = 0;
+
+(() => {
+  let s = '';
+  for(let n=0; n<personalityNames.length; n++) {
+    let name = personalityNames[n];
+    if (n==0){
+      s += '<button ' + 'id=personalityButton' + n + ' ' +'style=\'border-style:none\'' + 'onClick=showSmug(' + n +')>'
+      + '<b>' + name + '</b>' + '</button>'
+    }
+    else {
+      s+= '<button ' + 'id=personalityButton' + n + ' ' + 'style=\'border-style:none\'' + 'onClick=showPeppy(' + n + ')>' 
+      + '<b>' + name + '</b>' + '</button> '
+    }
+  }
+  personalityButtons.innerHTML = s;
+
+})();
+
+let selectPersonality = n => {
+  selectedPersonality = n;
+  for(let n = 0; n < personalityNames.length; n++){
+    let button = document.getElementById('shapeButton' + n);
+    let bgColor = n == selectedPersonality ? 'white' : 'gray';
+    button.style.backgroundColor = bgColor;
+  }
+}
+*/
+let vs = my_vertex_shader.innerHTML,
+    fs = my_fragment_shader.innerHTML;
+    fs = fs.substring(1, fs.length);
+
+document.body.innerHTML = [''
+   ,'<center><font size=6 color=#000000>' + my_title.innerHTML + '</center>'
+   ,'<TABLE cellspacing=0 cellpadding=0><TR>'
+   ,'<td width=50></td><td><font color=red size=5><div id=errorMessage>&nbsp;</div></font></td>'
+   ,'</TR><TR>'
+   ,'<table cellspacing=10>'
+   ,'<tr>'
+   ,'<td valign=top><font size=2 color=red><div id=errorMarker>&nbsp;</div></font></td>'
+
+/********************************************************************************
+WE ARE COMMENTING THIS OUT SO THAT THE FRAGMENT SHADER EDITOR DOES NOT APPEAR.
+   
+   ,'<td valign=top>'
+   ,'<textArea id=textArea spellcheck=false '
+   ,'style="font:16px courier;outline-width:0;border-style:none;resize:none;overflow:scroll;"'
+   ,'></textArea>'
+********************************************************************************/
+
+   ,'</td><td valign=top>' + document.body.innerHTML + '</td>'
+   ,'<td valign=top><font size=5>' + my_instructions.innerHTML + '</td>'
+   ,'</tr></table>'
+   ,'</TR></TABLE>'
+   ].join('');
+
+
+/********************************************************************************
+WE ALSO COMMENT THIS OUT, AS PART OF COMMENTING OUT THE FRAGMENT SHADER EDITOR.
+
+// SET UP THE EDITABLE TEXT AREA ON THE LEFT SIDE.
+
+let text = fs.split('\n'), cols = 0;
+for (let i = 0 ; i < text.length ; i++)
+   cols = Math.max(cols, text[i].length);
+
+textArea.rows = text.length;
+textArea.cols = cols;
+textArea.value = fs;
+textArea.style.backgroundColor = '#202020';
+textArea.style.color = 'white';
+
+// REPARSE THE SHADER PROGRAM AFTER EVERY KEYSTROKE.
+
+textArea.onkeyup = function() { canvas1.setShaders(vs, this.value); }
+********************************************************************************/
+
+
+// USEFUL ANIMATION VARIABLES.
+
+let startTime = Date.now(), prevTime = startTime, rate = 1, theta = 0;
+
+rotateViewSlider.oninput = function() {
+  theta = Math.PI * (.5 - this.value /50);
+}
+
+// RESPONSE TO USER ADJUSTING SLIDER VALUES FOR SCALING THE SELECTED OBJECT.
+
+scaleXSlider.oninput = function() { scaleAboutAxis(0, this.value / 50); }
+scaleYSlider.oninput = function() { scaleAboutAxis(1, this.value / 50); }
+scaleZSlider.oninput = function() { scaleAboutAxis(2, this.value / 50); }
+
+let scaleAboutAxis = (axis, value) => {
+   if (selectedObject) {
+      selectedObject.scale[axis] = value;
+      transformObject(selectedObject);
+   }
+}
+
+
+// DEFINE ANIMATION CALLBACK, WHICH WILL GET CALLED AT EVERY FRAME.
+
+let time = 0;
+
+let viewMatrix = new Matrix();
+let inverseViewMatrix = new Matrix();
+
+function animate() {
+
+   // VARY THE ROTATION RATE DEPENDING ON THE SLIDER VALUE.
+
+   time = (Date.now() - startTime) / 1000;
+
+   // SET TIME IN THE GPU.
+
+   setUniform('1f', 'uTime', time);
+
+   // SET LIGHTS IN THE GPU.
+
+   setUniform('3fv', 'uLDir', [ .57,.57,.57, -.57,-.57,-.57, -.8,-.6,0 ]);
+   setUniform('3fv', 'uLCol', [ 1,1,1,        .25,.2,.15,     .2,.18,.16 ]);
+
+   // DRAW EVERYTHING.
+
+   viewMatrix.identity().rotateY(theta);
+
+   inverseViewMatrix.setValue(viewMatrix.getValue());
+   inverseViewMatrix.invert();
+   root.identity().multiply(viewMatrix);//
+   peppy.identity().multiply(viewMatrix);
+   //scene.identity().multiply(viewMatrix
+   //smug.identity();
+   //peppy.identity();   
+   //setUniform('Matrix4fv', 'uPMat', false, perspectiveMatrix);
+
+
+   // SET THE BACKGROUND COLOR, IN THIS CASE TO DARK BLUE.
+
+   gl.clearColor(0.0, 0.7, 0.6, 0.5);
+   gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+   // DRAW EVERYTHING
+
+   objectAtCursor = null;
+   root.draw();
+   peppy.draw();
+
+
+/********************************************************************************
+
+WHAT WE STILL HAVE NOT DONE YET -- AND WILL DO HERE IN THE NEXT LECTURE:
+
+   SET THE ROTATE AND SCALE SLIDER VALUES FOR THE CURRENTLY SELECTED OBJECT.
+
+********************************************************************************/
+
+}
+
+//let matrix= new Matrix();
+let root = new Object();
+let peppy = new Object();
+//let smug = root.add();
+
+//let gui = root.add();
+//let scene = root.add();
+let showSmug = () => {
+  //root.draw();
+  
+  let head = root.add(sphere, raymond_gray).identity().scale(.35,.30,.32).translate(0,.8,0);
+
+  //body sphere
+  let body = root.add(sphere, raymond_gray) 
+  root.child(1).scale(.25,.3,.2).translate(0, -1.0, 0);
+  //left arm
+  let leftArm = root.add(sphere, raymond_gray)
+  root.child(2).rotateZ(-0.8).scale(.09,.29,.1).translate(-.35, -1.39, -2.0);
+  //right arm
+  let rightArm = root.add(sphere, raymond_gray)
+  root.child(3).rotateZ(0.8).scale(.09,.29,.1).translate(.35,-1.39, -2.0);
+  //left leg
+  let leftLeg = root.add(cylinder, raymond_gray)
+  root.child(4).rotateX(1.5).scale(.09, .2, .24).translate(-1.7,-10.,3.9);
+  //right leg
+  let rightLeg = root.add(cylinder, raymond_gray)
+  root.child(5).rotateX(1.5).scale(.09,.2,.24).translate(1.7, -10., 3.9);
+  //left ear
+  let leftEar = root.add(cone, raymond_gray)
+  root.child(6).identity().rotateX(-1.5).scale(.43, 1.4, .5).translate(-.75, 3.0,2.2);
+  //right ear
+  let rightEar = root.add(cone, raymond_gray)
+  root.child(7).identity().rotateX(-1.5).scale(.43, 1.4, .5).translate(.75, 3.0,2.2);
+  //left eye white
+  let leftEyeWhite = root.add(sphere, white_plastic);
+  root.child(8).scale(.03,.03,.02).translate(-1.8,2.8,100.0);
+  //right eye white
+  let rightEyeWhite = root.add(sphere, white_plastic);
+  root.child(9).scale(.03,.03,.02).translate(1.8,2.8,100.0);
+  //left eye black
+  let leftEyeBlack = root.add(sphere, steel)
+  root.child(10).scale(.02,.02,.05).translate(-2.4,4.1,40.0);
+  //right eye black
+  let rightEyeBlack = root.add(sphere, steel)
+  root.child(11).scale(.02,.02,.05).translate(2.5,4.1,40.0);
+  //left mouth rect
+  let leftMouth = root.add(cube,steel)
+  root.child(12).rotateZ(-.8).scale(.01,.04,.25).translate(-8.,.95,.3);
+  //right mouth rect
+  let rightMouth = root.add(cube,steel)
+  root.child(13).rotateZ(.8).scale(.01,.04,.25).translate(7.457,.946,.3);
+}
+
+let showPeppy = () => {
+ 
+  
+  let head = peppy.add(sphere, pink_plastic).identity().scale(.35,.30,.32).translate(0,.8,0);
+
+  //body sphere
+  //test.child(1).changeColor(pink_plastic);
+  let body = peppy.add(sphere, pink_plastic) 
+  peppy.child(1).scale(.25,.3,.2).translate(0, -1.0, 0);
+  //left arm
+  let leftArm = peppy.add(sphere, pink_plastic)  //.identity().scale(.25,.3,.2).translate(0, -1.0, 0);
+  peppy.child(2).rotateZ(-0.8).scale(.09,.29,.1).translate(-.35, -1.39, -2.0);
+  //right arm
+  let rightArm = peppy.add(sphere, pink_plastic)
+  peppy.child(3).rotateZ(0.8).scale(.09,.29,.1).translate(.35,-1.39, -2.0);
+  //left leg
+  let leftLeg = peppy.add(cylinder, pink_plastic)
+  peppy.child(4).rotateX(1.5).scale(.09, .2, .24).translate(-1.7,-10.,3.9);
+  //right leg
+  let rightLeg = peppy.add(cylinder, pink_plastic)
+  peppy.child(5).rotateX(1.5).scale(.09,.2,.24).translate(1.7, -10., 3.9);
+  //left ear
+  let leftEar = peppy.add(sphere, pink_plastic)
+  peppy.child(6).identity().scale(.1,.24,.1).translate(-1.5,2.8,1.5); //.rotateX(-1.5).scale(.43, 1.4, .5).translate(-.75, 3.0,2.2);
+  //right ear
+  //let rightEar = peppy.add(cone, pink_plastic)
+  //peppy.child(7).identity().rotateX(-1.5).scale(.43, 1.4, .5).translate(.75, 3.0,2.2);
+  let rightEar = peppy.add(sphere, pink_plastic)
+  peppy.child(7).identity().scale(.1,.24,.1).translate(1.5,2.8,1.5);
+  
+  //left eye left
+  let leftEyeLeft = peppy.add(cube, steel)
+  peppy.child(8).identity().rotateZ(-.8).scale(.009, .05, .1).translate(-30,1.5,3.);//.scale(.02,.02,.05).translate(-2.4,4.1,40.0);
+  //left eye right
+  let leftEyeRight = peppy.add(cube, steel)
+  peppy.child(9).identity().rotateZ(.8).scale(.009, .05, .1).translate(15.,4.5,3.0);
+  //peppy.child(9).scale(.02,.02,.05).translate(2.5,4.1,40.0);
+  //right eye left
+  let rightEyeLeft = peppy.add(cube, steel)
+  peppy.child(10).identity().rotateZ(-.8).scale(.009, .05, .1).translate(-12.0 ,5.0,3.);
+  //right eye right
+  let rightEyeRight = peppy.add(cube, steel)
+  peppy.child(11).identity().rotateZ(.8).scale(.009, .05, .1).translate(33.0 ,1.2,2.5);
+  //left mouth rect
+  let leftMouth = peppy.add(cube,steel)
+  peppy.child(12).rotateZ(-.8).scale(.01,.04,.25).translate(-8.,.95,.3);
+  //right mouth rect
+  let rightMouth = peppy.add(cube,steel)
+  peppy.child(13).rotateZ(.8).scale(.01,.04,.25).translate(7.457,.946,.3);
+  //nose 
+  let nose = peppy.add(sphere, light_pink)
+  peppy.child(14).scale(.03,.015,.1).translate(0.,11.,3.);
+  //peppy.child(12).identity().scale(.07).translate(0.,0.,4.);
+  
+}
+
+
+let isPressed = false;
+
+
+canvas1.onPress = (x, y) => {
+   isPressed = true;
+   isDragged = false;
+   dragObject = objectAtCursor;
+}
+
+
+
+//I DO NOT WANT PIECES OF CHARACTER MOVED AROUND LIKE FRANKENSTEIN
+canvas1.onDrag = (x, y) => {
+   isDragged = true;
+
+   // DRAG THE OBJECT AT THE CURSOR TO TRANSLATE IT.
+
+   if (dragObject) {
+      //let p = dragObject.translate;
+      //p = viewMatrix.transform(p);
+      //p[0] = x;
+      //p[1] = y;
+      //p = inverseViewMatrix.transform(p);
+      //dragObject.translate = p;
+      //transformObject(dragObject);
+   }
+}
+
+
+
+canvas1.onRelease = (x, y) => {
+    if (! isDragged)  {
+      selectedObject = dragObject;
+    }
+
+   // CLICK ON THE BACKGROUND TO CREATE A NEW OBJECT.
+  /*
+   if (! dragObject) {
+      let p = inverseViewMatrix.transform([x,y,0]);
+      let phong = red_plastic;
+      let obj = root.add(sphere, phong);
+      obj.translate = p;
+      obj.rotate = [0, 0, 0];
+      obj.scale = [1, 1, 1];
+      transformObject(obj);
+   }
+   */
+
+   // CLICK ON AN OBJECT TO SET ITS COLOR.
+
+  // else if (! isDragged) 
+     // dragObject.phong = white_plastic;
+}
+
+
+// TRANSFORM AN OBJECT, USING ITS TRANSFORM PROPERTIES.
+
+let transformObject = obj => {
+  obj.identity()
+     .translate(obj.translate)
+     .rotateX(Math.PI * obj.rotate[0])
+     .rotateY(Math.PI * obj.rotate[1])
+      .rotateZ(Math.PI * obj.rotate[2])
+      .scale(obj.scale)
+     .scale(0.1);
+}
+
+
+canvas1.onMove = (x, y) => {
+   isPressed = false;
+   px = x;
+   py = y;
+}
+
+
+// START EVERYTHING.
+
+gl_start(canvas1, vs, fs);
+
+</script>
+
